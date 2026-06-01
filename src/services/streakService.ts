@@ -1,25 +1,20 @@
-import { Completion } from "../models/completion.model.js";
-import { StreakCache } from "../models/streakCache.model.js";
+import { Types } from 'mongoose';
+import { Completion } from '../models/completion.model';
+import { StreakCache } from '../models/streakCache.model';
+import { toDateStr, yesterday } from '../utils/date';
+import { StreakResult } from '../types';
 
-const toDateStr = (date) => date.toISOString().slice(0, 10);
-
-const yesterday = (dateStr) => {
-  const d = new Date(dateStr);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return toDateStr(d);
-};
-
-export const computeStreak = async (habitId, userId) => {
+export const computeStreak = async (habitId: Types.ObjectId, userId: Types.ObjectId): Promise<StreakResult> => {
   const completions = await Completion.find({ habitId })
     .sort({ date: -1 })
-    .select("date")
+    .select('date')
     .lean();
 
   if (completions.length === 0) {
     await StreakCache.findOneAndUpdate(
       { habitId },
       { habitId, userId, currentStreak: 0, bestStreak: 0, lastComputedAt: new Date() },
-      { upsert: true, returnDocument: "after" }
+      { upsert: true, returnDocument: 'after' }
     );
     return { currentStreak: 0, bestStreak: 0 };
   }
@@ -65,7 +60,7 @@ export const computeStreak = async (habitId, userId) => {
   await StreakCache.findOneAndUpdate(
     { habitId },
     { habitId, userId, currentStreak, bestStreak, lastComputedAt: new Date() },
-    { upsert: true, returnDocument: "after" }
+    { upsert: true, returnDocument: 'after' }
   );
 
   return { currentStreak, bestStreak };

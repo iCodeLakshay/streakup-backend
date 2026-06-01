@@ -1,17 +1,27 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Types } from 'mongoose';
 
-const streakCacheSchema = new mongoose.Schema(
+interface IStreakCache {
+  habitId: Types.ObjectId;
+  userId: Types.ObjectId;
+  currentStreak: number;
+  bestStreak: number;
+  lastComputedAt: Date;
+}
+
+export type IStreakCacheDocument = Document<unknown, object, IStreakCache> & IStreakCache & { _id: Types.ObjectId };
+
+const streakCacheSchema = new mongoose.Schema<IStreakCache>(
   {
     habitId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Habit",
+      ref: 'Habit',
       required: true,
       unique: true,
       index: true,
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
       index: true,
     },
@@ -36,4 +46,4 @@ const streakCacheSchema = new mongoose.Schema(
   { timestamps: false }
 );
 
-export const StreakCache = mongoose.model("StreakCache", streakCacheSchema);
+export const StreakCache = mongoose.model<IStreakCache>('StreakCache', streakCacheSchema);

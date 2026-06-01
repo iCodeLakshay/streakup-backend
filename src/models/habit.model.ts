@@ -1,10 +1,23 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Types } from 'mongoose';
 
-const habitSchema = new mongoose.Schema(
+interface IHabit {
+  userId: Types.ObjectId;
+  name: string;
+  emoji: string | null;
+  color: string | null;
+  note: string | null;
+  archivedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type IHabitDocument = Document<unknown, object, IHabit> & IHabit & { _id: Types.ObjectId };
+
+const habitSchema = new mongoose.Schema<IHabit>(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
       index: true,
     },
@@ -34,4 +47,4 @@ const habitSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export const Habit = mongoose.model("Habit", habitSchema);
+export const Habit = mongoose.model<IHabit>('Habit', habitSchema);

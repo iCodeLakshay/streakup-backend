@@ -1,16 +1,26 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Types } from 'mongoose';
 
-const completionSchema = new mongoose.Schema(
+interface ICompletion {
+  habitId: Types.ObjectId;
+  userId: Types.ObjectId;
+  date: string;
+  completedAt: Date;
+  createdAt: Date;
+}
+
+export type ICompletionDocument = Document<unknown, object, ICompletion> & ICompletion & { _id: Types.ObjectId };
+
+const completionSchema = new mongoose.Schema<ICompletion>(
   {
     habitId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Habit",
+      ref: 'Habit',
       required: true,
       index: true,
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
       index: true,
     },
@@ -31,4 +41,4 @@ const completionSchema = new mongoose.Schema(
 // Enforces one completion per habit per day
 completionSchema.index({ habitId: 1, date: 1 }, { unique: true });
 
-export const Completion = mongoose.model("Completion", completionSchema);
+export const Completion = mongoose.model<ICompletion>('Completion', completionSchema);

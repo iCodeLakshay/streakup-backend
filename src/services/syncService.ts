@@ -1,8 +1,25 @@
-import { Habit } from "../models/habit.model.js";
-import { Completion } from "../models/completion.model.js";
+import { Habit } from '../models/habit.model';
+import { Completion } from '../models/completion.model';
+import { PullResult, PushResult, SyncConflict } from '../types';
 
-export const pull = async (userId, since) => {
-  const sinceDate = since ? new Date(since) : new Date(0);
+export interface ClientHabit {
+  _id?: string;
+  updatedAt?: string;
+  name?: string;
+  emoji?: string | null;
+  color?: string | null;
+  note?: string | null;
+  archivedAt?: string | null;
+}
+
+export interface ClientCompletion {
+  habitId?: string;
+  date?: string;
+  completedAt?: string;
+}
+
+export const pull = async (userId: string, since: unknown): Promise<PullResult> => {
+  const sinceDate = since ? new Date(since as string) : new Date(0);
 
   const [habits, completions] = await Promise.all([
     Habit.find({ userId, updatedAt: { $gt: sinceDate } }).lean(),
@@ -12,7 +29,7 @@ export const pull = async (userId, since) => {
   // Deletions = archived habits updated after sinceDate
   const deletions = habits
     .filter((h) => h.archivedAt !== null)
-    .map((h) => ({ id: h._id, archivedAt: h.archivedAt }));
+    .map((h) => ({ id: h._id, archivedAt: h.archivedAt as Date }));
 
   return {
     habits: habits.filter((h) => h.archivedAt === null),
@@ -21,8 +38,12 @@ export const pull = async (userId, since) => {
   };
 };
 
-export const push = async (userId, clientHabits = [], clientCompletions = []) => {
-  const conflicts = [];
+export const push = async (
+  userId: string,
+  clientHabits: ClientHabit[] = [],
+  clientCompletions: ClientCompletion[] = []
+): Promise<PushResult> => {
+  const conflicts: SyncConflict[] = [];
 
   // --- Habits ---
   for (const clientHabit of clientHabits) {
@@ -34,7 +55,7 @@ export const push = async (userId, clientHabits = [], clientCompletions = []) =>
       continue;
     }
 
-    if (new Date(clientHabit.updatedAt) > new Date(serverHabit.updatedAt)) {
+    if (new Date(clientHabit.updatedAt ?? 0) > new Date(serverHabit.updatedAt)) {
       await Habit.findByIdAndUpdate(serverHabit._id, {
         name: clientHabit.name,
         emoji: clientHabit.emoji,
@@ -45,7 +66,7 @@ export const push = async (userId, clientHabits = [], clientCompletions = []) =>
       });
     } else {
       // Server is newer — client is stale, report as conflict
-      conflicts.push({ type: "habit", id: serverHabit._id, serverRecord: serverHabit });
+      conflicts.push({ type: 'habit', id: serverHabit._id, serverRecord: serverHabit as unknown as Record<string, unknown> });
     }
   }
 
