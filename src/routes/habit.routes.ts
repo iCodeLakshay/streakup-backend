@@ -12,6 +12,8 @@ const habitBodyRules = [
   body('emoji').optional({ nullable: true }).isString(),
   body('color').optional({ nullable: true }).isString(),
   body('note').optional({ nullable: true }).isString(),
+  body('targetType').isIn(['streak', 'total', 'weekdays', 'weekly_frequency']).withMessage('Invalid target type'),
+  body('targetValue').isInt({ min: 1, max: 365 }).withMessage('Target value must be between 1 and 365'),
 ];
 
 const patchRules = [
@@ -19,6 +21,9 @@ const patchRules = [
   body('emoji').optional({ nullable: true }).isString(),
   body('color').optional({ nullable: true }).isString(),
   body('note').optional({ nullable: true }).isString(),
+  body('targetType').optional().isIn(['streak', 'total', 'weekdays', 'weekly_frequency']).withMessage('Invalid target type'),
+  body('targetValue').optional().isInt({ min: 1, max: 365 }).withMessage('Target value must be between 1 and 365'),
+  body('targetCompletedAt').optional({ nullable: true }),
 ];
 
 const dateRule = body('date')
