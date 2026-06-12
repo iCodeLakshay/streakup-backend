@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: streakup-api
+    runtime: node
+    # Repo root IS the backend (this repo's root contains server.ts, src/, package.json).
+    rootDir: .
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: ALLOWED_ORIGINS
+        value: https://placeholder.invalid

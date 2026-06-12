@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --exec ts-node server.ts",
     "build": "tsc",
+    "postbuild": "node -e \"require('fs').existsSync('dist/server.js') ? console.log('OK: dist/server.js present') : (console.error('MISSING dist/server.js. dist contains:', require('fs').existsSync('dist') ? require('fs').readdirSync('dist') : '(no dist dir)'), process.exit(1))\"",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit"
   },
