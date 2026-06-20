@@ -14,17 +14,33 @@ export const isTargetReached = (targetType: TargetType, targetValue: number, cur
   return currentStreak >= targetValue;
 };
 
-const upsertCache = async (habitId: Types.ObjectId, userId: Types.ObjectId, currentStreak: number, bestStreak: number) => {
-  await StreakCache.findOneAndUpdate(
+// Single-query cache write: $set current/lastComputed and $max keeps bestStreak
+// monotonic (never decreases) — replaces the previous read-then-write pair.
+// Returns the resulting bestStreak.
+const saveCache = async (
+  habitId: Types.ObjectId,
+  userId: Types.ObjectId,
+  currentStreak: number,
+  computedBest: number
+): Promise<number> => {
+  const doc = await StreakCache.findOneAndUpdate(
     { habitId },
-    { habitId, userId, currentStreak, bestStreak, lastComputedAt: new Date() },
-    { upsert: true, returnDocument: 'after' }
-  );
+    {
+      $set: { userId, currentStreak, lastComputedAt: new Date() },
+      $max: { bestStreak: computedBest },
+    },
+    { upsert: true, new: true }
+  ).lean();
+  return doc?.bestStreak ?? computedBest;
 };
 
-const protectBest = async (habitId: Types.ObjectId, computed: number): Promise<number> => {
-  const existing = await StreakCache.findOne({ habitId }).lean();
-  return existing && existing.bestStreak > computed ? existing.bestStreak : computed;
+// Reset (no completions): force both current and best to 0.
+const resetCache = async (habitId: Types.ObjectId, userId: Types.ObjectId): Promise<void> => {
+  await StreakCache.findOneAndUpdate(
+    { habitId },
+    { $set: { userId, currentStreak: 0, bestStreak: 0, lastComputedAt: new Date() } },
+    { upsert: true }
+  );
 };
 
 export const computeStreak = async (habitId: Types.ObjectId, userId: Types.ObjectId): Promise<StreakResult> => {
@@ -40,13 +56,12 @@ export const computeStreak = async (habitId: Types.ObjectId, userId: Types.Objec
   // --- total: count all completions, no consecutive logic ---
   if (targetType === 'total') {
     const currentStreak = completions.length;
-    const bestStreak = await protectBest(habitId, currentStreak);
-    await upsertCache(habitId, userId, currentStreak, bestStreak);
+    const bestStreak = await saveCache(habitId, userId, currentStreak, currentStreak);
     return { currentStreak, bestStreak };
   }
 
   if (completions.length === 0) {
-    await upsertCache(habitId, userId, 0, 0);
+    await resetCache(habitId, userId);
     return { currentStreak: 0, bestStreak: 0 };
   }
 
@@ -99,8 +114,7 @@ export const computeStreak = async (habitId: Types.ObjectId, userId: Types.Objec
         run = 0;
       }
     }
-    const bestStreak = await protectBest(habitId, bestRun);
-    await upsertCache(habitId, userId, currentStreak, bestStreak);
+    const bestStreak = await saveCache(habitId, userId, currentStreak, bestRun);
     return { currentStreak, bestStreak };
   }
 
@@ -148,8 +162,7 @@ export const computeStreak = async (habitId: Types.ObjectId, userId: Types.Objec
         run = 0;
       }
     }
-    const bestStreak = await protectBest(habitId, bestRun);
-    await upsertCache(habitId, userId, currentStreak, bestStreak);
+    const bestStreak = await saveCache(habitId, userId, currentStreak, bestRun);
     return { currentStreak, bestStreak };
   }
 
@@ -182,8 +195,6 @@ export const computeStreak = async (habitId: Types.ObjectId, userId: Types.Objec
     }
   }
   bestStreak = Math.max(bestStreak, run);
-  bestStreak = await protectBest(habitId, bestStreak);
-
-  await upsertCache(habitId, userId, currentStreak, bestStreak);
+  bestStreak = await saveCache(habitId, userId, currentStreak, bestStreak);
   return { currentStreak, bestStreak };
 };

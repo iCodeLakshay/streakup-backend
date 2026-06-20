@@ -68,4 +68,9 @@ const habitSchema = new mongoose.Schema<IHabit>(
   { timestamps: true }
 );
 
+// listHabits filters { userId, archivedAt: null }; sync pull filters
+// { userId, updatedAt: { $gt } }. Compound indexes cover both hot paths.
+habitSchema.index({ userId: 1, archivedAt: 1 });
+habitSchema.index({ userId: 1, updatedAt: 1 });
+
 export const Habit = mongoose.model<IHabit>('Habit', habitSchema);

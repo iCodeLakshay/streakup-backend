@@ -20,6 +20,14 @@ const authLimiter = rateLimit({
   message: { error: 'Too many requests' },
 });
 
+// General limiter for authenticated data routes — guards against abuse/DoS of
+// the habit and (loop-heavy) sync endpoints.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: { error: 'Too many requests' },
+});
+
 app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(',') }));
 app.use(helmet());
 app.use(compression());
@@ -31,8 +39,8 @@ app.get('/api/v1', (_req, res) => {
 });
 
 app.use('/api/v1/auth', authLimiter, authRouter);
-app.use('/api/v1/habits', authenticate, habitRouter);
-app.use('/api/v1/sync', authenticate, syncRouter);
+app.use('/api/v1/habits', apiLimiter, authenticate, habitRouter);
+app.use('/api/v1/sync', apiLimiter, authenticate, syncRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });

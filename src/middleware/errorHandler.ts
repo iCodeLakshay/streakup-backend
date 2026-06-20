@@ -14,7 +14,11 @@ export const errorHandler: ErrorRequestHandler = (err: AppError, _req: Request, 
   }
 
   const status = err.status ?? 500;
-  const message = err.message ?? 'Internal server error';
+
+  // Only surface messages for known operational errors (those with an explicit
+  // status). For unexpected 5xx errors return a generic message so internal
+  // details (stack traces, DB errors) are never leaked to clients.
+  const message = err.status ? (err.message ?? 'Error') : 'Internal server error';
 
   res.status(status).json({ error: message });
 };

@@ -41,4 +41,9 @@ const completionSchema = new mongoose.Schema<ICompletion>(
 // Enforces one completion per habit per day
 completionSchema.index({ habitId: 1, date: 1 }, { unique: true });
 
+// sync pull filters { userId, createdAt: { $gt } }; push checks
+// { userId, habitId: { $in }, date: { $in } }.
+completionSchema.index({ userId: 1, createdAt: 1 });
+completionSchema.index({ userId: 1, habitId: 1, date: 1 });
+
 export const Completion = mongoose.model<ICompletion>('Completion', completionSchema);

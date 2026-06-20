@@ -14,8 +14,8 @@ router.get(
 
 router.post(
   '/push',
-  body('habits').optional().isArray(),
-  body('completions').optional().isArray(),
+  body('habits').optional().isArray({ max: 1000 }).withMessage('Too many habits in one push'),
+  body('completions').optional().isArray({ max: 5000 }).withMessage('Too many completions in one push'),
   body('lastSyncAt').optional().isISO8601().withMessage('lastSyncAt must be a valid ISO 8601 date'),
   validate,
   pushSync
